@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quer sair cmg?</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#f97316;--muted:#94a3b8}
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,system-ui,Arial}
+    body{background:linear-gradient(180deg,#ff0000 0%, #0b1220 60%);color:#e6edf3;display:flex;align-items:center;justify-content:center}
+    .card{width:min(720px,95vw);background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent);padding:32px;border-radius:16px;box-shadow:0 10px 30px rgba(2,6,23,0.7);text-align:center;position:relative;overflow:hidden}
+    h1{font-size:28px;margin:0 0 12px}
+    p{color:var(--muted);margin:0 0 22px}
+    .buttons{display:flex;gap:18px;justify-content:center;align-items:center}
+    button{padding:14px 26px;border-radius:10px;border:0;font-weight:700;cursor:pointer;font-size:16px;box-shadow:0 6px 18px rgba(2,6,23,0.5)}
+    #yes{background:linear-gradient(90deg,#ff0000,#b10000);color:#022;transform:translateZ(0)}
+    #no{background:transparent;border:2px solid rgba(255,255,255,0.06);color:#e6edf3}
+    .small{font-size:13px;color:var(--muted);margin-top:12px}
+    @media (max-width:420px){h1{font-size:22px}button{padding:12px 18px}}
+    .decor{position:absolute;inset:0;pointer-events:none;opacity:0.06;background-image:radial-gradient(circle at 10% 20%, #f97316 0 2px, transparent 3px), radial-gradient(circle at 80% 70%, #06b6d4 0 2px, transparent 3px)}
+    button:focus{outline:3px solid rgba(255,255,255,0.08)}
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div class="decor"></div>
+    <h1>Ei Mozao</h1>
+    <p>Quero muito te convidar pra sair. Você aceita sair comigo?</p>
+
+    <div class="buttons">
+      <button id="no">Não</button>
+      <button id="yes">Sim</button>
+    </div>
+    <div class="small">Tente apertar o "Não"... se conseguir, ganha um prêmio, o premio vai ser uma noite de sexo hj kkkk</div>
+  </div>
+
+  <canvas id="fx" style="position:fixed;left:0;top:0;pointer-events:none;z-index:9999"></canvas>
+  
+  <script>
+    const audio = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_7c3b36b4e7.mp3');
+
+    const noBtn = document.getElementById('no');
+    const yesBtn = document.getElementById('yes');
+    const card = document.querySelector('.card');
+
+    function randomPos() {
+      const rect = card.getBoundingClientRect();
+      const btnW = noBtn.offsetWidth;
+      const btnH = noBtn.offsetHeight;
+      const padding = 12;
+      const x = Math.random() * (rect.width - btnW - padding*2) + padding;
+      const y = Math.random() * (rect.height - btnH - padding*2) + padding + 60;
+      return {x: Math.round(x), y: Math.round(y)};
+    }
+
+    function moveNoToRandom() {
+      const p = randomPos();
+      noBtn.style.position = 'absolute';
+      noBtn.style.left = p.x + 'px';
+      noBtn.style.top = p.y + 'px';
+      noBtn.style.transition = 'left 220ms ease, top 220ms ease';
+    }
+
+    function avoid() {
+      moveNoToRandom();
+    }
+
+    function placeInitial() {
+      noBtn.style.position = '';
+      noBtn.style.left = '';
+      noBtn.style.top = '';
+    }
+
+    noBtn.addEventListener('mouseenter', avoid);
+    noBtn.addEventListener('focus', avoid);
+    noBtn.addEventListener('touchstart', function(e){ e.preventDefault(); avoid(); }, {passive:false});
+    noBtn.addEventListener('click', function(e){ e.preventDefault(); avoid(); shakeCard(); });
+
+    function shakeCard(){
+      card.animate([
+        {transform:'translateX(0)'},
+        {transform:'translateX(-8px)'},
+        {transform:'translateX(8px)'},
+        {transform:'translateX(0)'}
+      ], {duration:420, iterations:1, easing:'ease-in-out'});
+    }
+
+    window.addEventListener('resize', placeInitial);
+
+    const canvas = document.getElementById('fx');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = innerWidth;
+    let H = canvas.height = innerHeight;
+    window.addEventListener('resize', ()=>{ W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
+
+    function rand(min,max){return Math.random()*(max-min)+min}
+
+    class Particle{
+      constructor(x,y,hu){
+        this.x=x;this.y=y;this.vx=rand(-6,6);this.vy=rand(-10,-2);this.alpha=1;this.size=rand(2,4);this.hue=hu+rand(-20,20);
+      }
+      update(){
+        this.vy += 0.12; this.x += this.vx; this.y += this.vy; this.alpha -= 0.01; if(this.alpha<0)this.alpha=0;
+      }
+      draw(){
+        ctx.save(); ctx.globalAlpha=this.alpha; ctx.beginPath(); ctx.fillStyle='hsl('+this.hue+',90%,'+ (rand(45,60))+'%)'; ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); ctx.restore();
+      }
+    }
+
+    let particles = [];
+
+    function spawnFirework(x,y){
+      audio.currentTime = 0;
+      audio.play();
+      const hue = Math.floor(rand(0,360));
+      for(let i=0;i<120;i++) particles.push(new Particle(x,y,hue));
+    }
+
+    function loop(){
+      ctx.clearRect(0,0,W,H);
+      for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i]; p.update(); p.draw(); if(p.alpha<=0.01||p.y>H+50) particles.splice(i,1);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    function celebracao() {
+      card.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:900,iterations:1});
+
+      const times = 8;
+      for(let i=0;i<times;i++){
+        setTimeout(()=>{
+          spawnFirework(rand(100,W-100), rand(100,H/2));
+        }, i*220);
+      }
+
+      yesBtn.disabled = true;
+    }
+
+    yesBtn.addEventListener('click', function(){
+      celebracao();
+      setTimeout(()=>{
+        alert('Queria qu fosse vdd mozão, desculpa... Mais eu quero transar com vc, isso que importa, kkkkk.....!');
+      }, 1200);
+    });
+
+    yesBtn.addEventListener('keyup', (e)=>{ if(e.key==='Enter') yesBtn.click(); });
+
+    placeInitial();
+  </script>
+</body>
+</html>
